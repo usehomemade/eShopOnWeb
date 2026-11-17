@@ -1,0 +1,46 @@
+{
+  "$schema": "https://homemade.dev/schemas/latest/config.json",
+  "setup": [
+    "curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && bash /tmp/dotnet-install.sh --version 8.0.408 --install-dir /opt/dotnet8 --no-path --azure-feed https://dotnetcli.blob.core.windows.net/dotnet"
+  ],
+  "warmup": [
+    "/opt/dotnet8/dotnet restore eShopOnWeb.sln",
+    "/opt/dotnet8/dotnet build src/Web/Web.csproj --no-restore && /opt/dotnet8/dotnet build src/PublicApi/PublicApi.csproj --no-restore"
+  ],
+  "install": [
+    "/opt/dotnet8/dotnet restore eShopOnWeb.sln",
+    "/opt/dotnet8/dotnet build src/Web/Web.csproj --no-restore && /opt/dotnet8/dotnet build src/PublicApi/PublicApi.csproj --no-restore",
+    "python3 -c 'import json,os,pathlib; p=pathlib.Path(\"src/Web/bin/Debug/net8.0\"); w=p/\"homemade-wwwroot\"; w.mkdir(parents=True,exist_ok=True); (w/\"appsettings.Development.json\").write_text(json.dumps({\"baseUrls\":{\"apiBase\":os.environ[\"baseUrls__apiBase\"],\"webBase\":os.environ[\"baseUrls__webBase\"]}})); m=json.loads((p/\"Web.staticwebassets.runtime.json\").read_text()); i=len(m[\"ContentRoots\"]); m[\"ContentRoots\"].append(str(w.resolve())+\"/\"); m[\"Root\"][\"Children\"][\"appsettings.Development.json\"]={\"Children\":None,\"Asset\":{\"ContentRootIndex\":i,\"SubPath\":\"appsettings.Development.json\"},\"Patterns\":None}; (p/\"homemade.staticwebassets.runtime.json\").write_text(json.dumps(m))'"
+  ],
+  "services": {
+    "web": {
+      "cmd": "exec /opt/dotnet8/dotnet watch --project src/Web/Web.csproj --non-interactive --no-launch-profile run -- --http_ports $PORT --staticWebAssets /workspace/app/src/Web/bin/Debug/net8.0/homemade.staticwebassets.runtime.json",
+      "port": 5000,
+      "url": true,
+      "healthcheck": {
+        "path": "/"
+      },
+      "displayName": "eShop storefront",
+      "order": 0
+    },
+    "api": {
+      "cmd": "exec /opt/dotnet8/dotnet watch --project src/PublicApi/PublicApi.csproj --non-interactive --no-launch-profile run -- --http_ports $PORT",
+      "port": 5098,
+      "url": true,
+      "healthcheck": {
+        "path": "/swagger/index.html"
+      },
+      "displayName": "Public API",
+      "order": 1
+    }
+  },
+  "env_schema": [
+    "ASPNETCORE_ENVIRONMENT",
+    "UseOnlyInMemoryDatabase",
+    "baseUrls__apiBase",
+    "baseUrls__webBase",
+    "DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER",
+    "DOTNET_USE_POLLING_FILE_WATCHER"
+  ],
+  "size": "small"
+}
