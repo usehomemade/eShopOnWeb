@@ -1,0 +1,44 @@
+{
+  "$schema": "https://homemade.dev/schemas/latest/config.json",
+  "setup": [
+    "curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && bash /tmp/dotnet-install.sh --version 8.0.416 --install-dir /opt/dotnet8 --no-path"
+  ],
+  "warmup": [
+    "/opt/dotnet8/dotnet restore src/Web/Web.csproj && /opt/dotnet8/dotnet restore src/PublicApi/PublicApi.csproj",
+    "/opt/dotnet8/dotnet build src/Web/Web.csproj --no-restore && /opt/dotnet8/dotnet build src/PublicApi/PublicApi.csproj --no-restore"
+  ],
+  "install": [
+    "/opt/dotnet8/dotnet restore src/Web/Web.csproj && /opt/dotnet8/dotnet restore src/PublicApi/PublicApi.csproj"
+  ],
+  "services": {
+    "web": {
+      "cmd": "timeout 120 bash -c 'until (echo > /dev/tcp/127.0.0.1/5200) 2>/dev/null; do sleep 1; done' && exec /opt/dotnet8/dotnet watch --project src/Web/Web.csproj --non-interactive --no-hot-reload run --no-launch-profile --no-restore --http_ports \"$PORT\"",
+      "port": 5000,
+      "url": true,
+      "healthcheck": {
+        "path": "/"
+      },
+      "displayName": "eShop Store",
+      "order": 0
+    },
+    "api": {
+      "cmd": "exec /opt/dotnet8/dotnet watch --project src/PublicApi/PublicApi.csproj --non-interactive --no-hot-reload run --no-launch-profile --no-restore --http_ports \"$PORT\"",
+      "port": 5200,
+      "url": true,
+      "healthcheck": {
+        "path": "/swagger/index.html"
+      },
+      "displayName": "Public API",
+      "order": 1
+    }
+  },
+  "env_schema": [
+    "ASPNETCORE_ENVIRONMENT",
+    "UseOnlyInMemoryDatabase",
+    "baseUrls__webBase",
+    "baseUrls__apiBase",
+    "DOTNET_WATCH_RESTART_ON_RUDE_EDIT",
+    "DOTNET_USE_POLLING_FILE_WATCHER",
+    "DOTNET_ROOT"
+  ]
+}
