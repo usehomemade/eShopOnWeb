@@ -12,7 +12,7 @@
   ],
   "services": {
     "web": {
-      "cmd": "exec /opt/dotnet8/dotnet watch --project src/Web/Web.csproj --non-interactive --no-hot-reload run --no-launch-profile --urls \"http://*:$PORT\"",
+      "cmd": "timeout 120 bash -c 'until (echo > /dev/tcp/127.0.0.1/5200) 2>/dev/null; do sleep 1; done' && exec /opt/dotnet8/dotnet watch --project src/Web/Web.csproj --non-interactive --no-hot-reload run --no-launch-profile --no-restore --http_ports \"$PORT\"",
       "port": 5000,
       "url": true,
       "healthcheck": {
@@ -22,7 +22,7 @@
       "order": 0
     },
     "api": {
-      "cmd": "exec /opt/dotnet8/dotnet watch --project src/PublicApi/PublicApi.csproj --non-interactive --no-hot-reload run --no-launch-profile --urls \"http://*:$PORT\"",
+      "cmd": "exec /opt/dotnet8/dotnet watch --project src/PublicApi/PublicApi.csproj --non-interactive --no-hot-reload run --no-launch-profile --no-restore --http_ports \"$PORT\"",
       "port": 5200,
       "url": true,
       "healthcheck": {
